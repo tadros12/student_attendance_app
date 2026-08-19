@@ -1,0 +1,53 @@
+class Student {
+  final String id;
+  final String nameEn;
+  final String nameAr;
+  final int totalAbsences;
+
+  const Student({
+    required this.id,
+    required this.nameEn,
+    required this.nameAr,
+    this.totalAbsences = 0,
+  });
+
+  factory Student.fromMap(Map<String, dynamic> map, String documentId) {
+    return Student(
+      id: documentId.isNotEmpty ? documentId : (map['id'] as String? ?? ''),
+      nameEn: map['name_en'] as String? ?? '',
+      nameAr: map['name_ar'] as String? ?? '',
+      totalAbsences: (map['total_absences'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name_en': nameEn,
+      'name_ar': nameAr,
+      'total_absences': totalAbsences,
+    };
+  }
+
+  Student copyWith({
+    String? id,
+    String? nameEn,
+    String? nameAr,
+    int? totalAbsences,
+  }) {
+    return Student(
+      id: id ?? this.id,
+      nameEn: nameEn ?? this.nameEn,
+      nameAr: nameAr ?? this.nameAr,
+      totalAbsences: totalAbsences ?? this.totalAbsences,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Student && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
