@@ -17,8 +17,7 @@ class AttendanceService {
 
   final StreamController<List<Student>> _localStudentStreamController =
       StreamController<List<Student>>.broadcast();
-  final StreamController<Map<String, AttendanceLog>> _localTodayLogsStreamController =
-      StreamController<Map<String, AttendanceLog>>.broadcast();
+  final Map<String, StreamController<Map<String, AttendanceLog>>> _dateControllers = {};
 
   AttendanceService({
     FirebaseFirestore? firestore,
@@ -89,19 +88,16 @@ class AttendanceService {
   Future<void> _saveLocalLogs(List<AttendanceLog> logs) async {
     final list = logs.map((l) => l.toMap()).toList();
     await _prefs.setString(_localLogsKey, jsonEncode(list));
-    _notifyTodayLogs();
-  }
-
-  void _notifyTodayLogs() {
-    final todayKey = AttendanceLog.formatDateKey(DateTime.now());
-    final logs = _getLocalLogs();
-    final todayMap = <String, AttendanceLog>{};
-    for (final log in logs) {
-      if (log.dateKey == todayKey) {
-        todayMap[log.studentId] = log;
+    // Notify all active date stream listeners
+    for (final entry in _dateControllers.entries) {
+      final dateKey = entry.key;
+      final controller = entry.value;
+      final map = <String, AttendanceLog>{};
+      for (final log in logs) {
+        if (log.dateKey == dateKey) map[log.studentId] = log;
       }
+      controller.add(map);
     }
-    _localTodayLogsStreamController.add(todayMap);
   }
 
   /// Real-time stream of all students
@@ -133,15 +129,14 @@ class AttendanceService {
     return _localStudentStreamController.stream;
   }
 
-  /// Real-time stream of today's attendance logs (Map of studentId -> AttendanceLog)
-  Stream<Map<String, AttendanceLog>> getTodayAttendanceMapStream() {
-    final todayKey = AttendanceLog.formatDateKey(DateTime.now());
+  /// Real-time stream of attendance logs for ANY date (studentId -> AttendanceLog)
+  Stream<Map<String, AttendanceLog>> getLogsForDateStream(String dateKey) {
     final fs = _firestore;
     if (_isFirebaseReady && fs != null) {
       try {
         return fs
             .collection(AppConstants.attendanceLogsCollection)
-            .where('date_key', isEqualTo: todayKey)
+            .where('date_key', isEqualTo: dateKey)
             .snapshots(includeMetadataChanges: true)
             .map((snapshot) {
           final map = <String, AttendanceLog>{};
@@ -151,21 +146,41 @@ class AttendanceService {
           }
           return map;
         }).handleError((error) {
-          debugPrint('Firestore today logs stream error: $error');
+          debugPrint('Firestore date logs stream error: $error');
           final logs = _getLocalLogs();
           final localMap = <String, AttendanceLog>{};
           for (final log in logs) {
-            if (log.dateKey == todayKey) localMap[log.studentId] = log;
+            if (log.dateKey == dateKey) localMap[log.studentId] = log;
           }
           return localMap;
         });
       } catch (e) {
-        debugPrint('Firestore today logs error: $e');
+        debugPrint('Firestore date logs error: $e');
       }
     }
 
-    Future.microtask(() => _notifyTodayLogs());
-    return _localTodayLogsStreamController.stream;
+    // Local stream controller
+    if (!_dateControllers.containsKey(dateKey)) {
+      _dateControllers[dateKey] = StreamController<Map<String, AttendanceLog>>.broadcast();
+    }
+    final controller = _dateControllers[dateKey]!;
+
+    Future.microtask(() {
+      final logs = _getLocalLogs();
+      final localMap = <String, AttendanceLog>{};
+      for (final log in logs) {
+        if (log.dateKey == dateKey) localMap[log.studentId] = log;
+      }
+      controller.add(localMap);
+    });
+
+    return controller.stream;
+  }
+
+  /// Real-time stream of today's attendance logs
+  Stream<Map<String, AttendanceLog>> getTodayAttendanceMapStream() {
+    final todayKey = AttendanceLog.formatDateKey(DateTime.now());
+    return getLogsForDateStream(todayKey);
   }
 
   /// Fetch a single student by ID
@@ -201,16 +216,15 @@ class AttendanceService {
     }
   }
 
-  /// Get today's attendance log for a specific student (if already marked today)
-  Future<AttendanceLog?> getTodayLogForStudent(String studentId) async {
-    final todayKey = AttendanceLog.formatDateKey(DateTime.now());
+  /// Get attendance log for a student on a specific date
+  Future<AttendanceLog?> getLogForStudentOnDate(String studentId, String dateKey) async {
     final fs = _firestore;
     if (_isFirebaseReady && fs != null) {
       try {
         final query = await fs
             .collection(AppConstants.attendanceLogsCollection)
             .where('student_id', isEqualTo: studentId)
-            .where('date_key', isEqualTo: todayKey)
+            .where('date_key', isEqualTo: dateKey)
             .limit(1)
             .get();
         if (query.docs.isNotEmpty) {
@@ -221,10 +235,14 @@ class AttendanceService {
 
     final localLogs = _getLocalLogs();
     try {
-      return localLogs.firstWhere((l) => l.studentId == studentId && l.dateKey == todayKey);
+      return localLogs.firstWhere((l) => l.studentId == studentId && l.dateKey == dateKey);
     } catch (_) {
       return null;
     }
+  }
+
+  Future<AttendanceLog?> getTodayLogForStudent(String studentId) {
+    return getLogForStudentOnDate(studentId, AttendanceLog.formatDateKey(DateTime.now()));
   }
 
   /// Add a new person
@@ -312,32 +330,27 @@ class AttendanceService {
     }
   }
 
-  /// Records attendance with Same-Day Duplicate Prevention
-  /// If already recorded today, updates the existing entry and corrects absence counters.
+  /// Records attendance for a specific date (defaults to now) with Same-Day Duplicate Prevention
   Future<void> recordAttendance({
     required String studentId,
     required bool status,
     String? notes,
     required String markedBy,
+    DateTime? date,
   }) async {
-    final now = DateTime.now();
-    final todayKey = AttendanceLog.formatDateKey(now);
-    final logDocId = '${studentId}_$todayKey';
+    final recordDate = date ?? DateTime.now();
+    final dateKey = AttendanceLog.formatDateKey(recordDate);
+    final logDocId = '${studentId}_$dateKey';
 
-    // Check existing log for today
-    final existingLog = await getTodayLogForStudent(studentId);
+    final existingLog = await getLogForStudentOnDate(studentId, dateKey);
     int absenceDelta = 0;
 
     if (existingLog == null) {
-      // First time recording today
       if (!status) absenceDelta = 1;
     } else {
-      // Modifying today's record
       if (existingLog.status == false && status == true) {
-        // Was absent, now attended -> reduce absence count
         absenceDelta = -1;
       } else if (existingLog.status == true && status == false) {
-        // Was attended, now absent -> increase absence count
         absenceDelta = 1;
       }
     }
@@ -350,8 +363,8 @@ class AttendanceService {
         final log = AttendanceLog(
           logId: logDocId,
           studentId: studentId,
-          date: now,
-          dateKey: todayKey,
+          date: recordDate,
+          dateKey: dateKey,
           status: status,
           notes: notes,
           markedBy: markedBy,
@@ -360,7 +373,7 @@ class AttendanceService {
 
         final studentDocRef = fs.collection(AppConstants.studentsCollection).doc(studentId);
         final Map<String, dynamic> studentUpdates = {
-          'last_attendance_date': todayKey,
+          'last_attendance_date': dateKey,
           'today_status': status,
         };
         if (absenceDelta != 0) {
@@ -377,7 +390,7 @@ class AttendanceService {
       }
     }
 
-    // 2. Always update local storage
+    // Local storage update
     final students = _getLocalStudents();
     final index = students.indexWhere((s) => s.id == studentId);
     if (index != -1) {
@@ -386,7 +399,7 @@ class AttendanceService {
       final updated = current.copyWith(
         totalAbsences: newAbsences,
         notes: (notes != null && notes.isNotEmpty) ? notes : current.notes,
-        lastAttendanceDate: todayKey,
+        lastAttendanceDate: dateKey,
         todayStatus: status,
       );
       students[index] = updated;
@@ -395,12 +408,12 @@ class AttendanceService {
 
     // Update local logs
     final logs = _getLocalLogs();
-    final logIndex = logs.indexWhere((l) => l.studentId == studentId && l.dateKey == todayKey);
+    final logIndex = logs.indexWhere((l) => l.studentId == studentId && l.dateKey == dateKey);
     final newLog = AttendanceLog(
       logId: logDocId,
       studentId: studentId,
-      date: now,
-      dateKey: todayKey,
+      date: recordDate,
+      dateKey: dateKey,
       status: status,
       notes: notes,
       markedBy: markedBy,

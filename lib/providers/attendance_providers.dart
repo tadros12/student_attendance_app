@@ -8,6 +8,8 @@ import '../models/student_model.dart';
 import '../services/excel_service.dart';
 import '../services/firestore_service.dart';
 
+enum AttendanceFilterEnum { all, attended, absent, unmarked }
+
 // Services
 final isFirebaseInitializedProvider = StateProvider<bool>((ref) => false);
 
@@ -74,6 +76,18 @@ final todayAttendanceMapProvider = StreamProvider<Map<String, AttendanceLog>>((r
   final service = ref.watch(attendanceServiceProvider);
   return service.getTodayAttendanceMapStream();
 });
+
+// Admin Selected Date & Filter Providers
+final adminSelectedDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+
+final adminDateLogsProvider = StreamProvider<Map<String, AttendanceLog>>((ref) {
+  final selectedDate = ref.watch(adminSelectedDateProvider);
+  final dateKey = AttendanceLog.formatDateKey(selectedDate);
+  final service = ref.watch(attendanceServiceProvider);
+  return service.getLogsForDateStream(dateKey);
+});
+
+final adminStatusFilterProvider = StateProvider<AttendanceFilterEnum>((ref) => AttendanceFilterEnum.all);
 
 // Search Query State
 final searchQueryProvider = StateProvider<String>((ref) => '');

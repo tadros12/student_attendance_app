@@ -18,17 +18,29 @@ class AppStrings {
   String get attendance => isArabic ? 'تسجيل الحضور' : 'Attendance';
   String get adminPanel => isArabic ? 'لوحة التحكم' : 'Admin Panel';
   String get stats => isArabic ? 'نظرة عامة على الإحصائيات' : 'Overview & Stats';
-  String get managePeople => isArabic ? 'إدارة الأشخاص' : 'Manage People';
+  String get managePeople => isArabic ? 'إدارة الأشخاص وسجلات الأيام' : 'People & Daily Logs';
 
   // Date & Day strings
   String get today => isArabic ? 'اليوم' : 'Today';
   String get todayAttendance => isArabic ? 'حضور اليوم' : "Today's Attendance";
   String get markedAt => isArabic ? 'تم التسجيل في' : 'Recorded at';
-  String get alreadyMarkedToday => isArabic ? 'تم تسجيل حالة هذا اليوم مسبقاً' : 'Status already recorded for today';
-  String get updateTodayStatus => isArabic ? 'تعديل حالة اليوم' : "Update Today's Status";
+  String get alreadyMarkedToday => isArabic ? 'تم تسجيل حالة هذا اليوم مسبقاً' : 'Status already recorded for this day';
+  String get updateTodayStatus => isArabic ? 'تعديل حالة اليوم' : "Update Status";
   String get attendedToday => isArabic ? 'حاضر اليوم' : 'Attended Today';
   String get absentToday => isArabic ? 'غائب اليوم' : 'Absent Today';
   String get unmarkedToday => isArabic ? 'غير مسجل اليوم' : 'Not Marked Yet';
+
+  // Admin Date Filter & Status
+  String get filterByDate => isArabic ? 'تصفية حسب اليوم' : 'Filter by Day';
+  String get selectDate => isArabic ? 'اختر التاريخ' : 'Select Date';
+  String get filterAll => isArabic ? 'الكل' : 'All';
+  String get filterAttended => isArabic ? 'حاضر' : 'Attended';
+  String get filterAbsent => isArabic ? 'غائب' : 'Absent';
+  String get filterUnmarked => isArabic ? 'غير مسجل' : 'Unmarked';
+  String get onDate => isArabic ? 'بتاريخ' : 'on';
+  String get noRecordsForDate => isArabic ? 'لا توجد سجلات لهذا اليوم' : 'No records for this date';
+  String get changeDate => isArabic ? 'تغيير التاريخ' : 'Change Date';
+  String get attendanceOnDate => isArabic ? 'سجل الحضور ليوم' : 'Attendance for';
 
   // Search & Main Panel (Using "حاضر" / Attendee)
   String get searchHint => isArabic ? 'ابحث بالاسم (عربي/إنجليزي) أو الرقم...' : 'Search name (EN/AR) or ID...';
