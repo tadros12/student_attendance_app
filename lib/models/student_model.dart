@@ -3,12 +3,14 @@ class Student {
   final String nameEn;
   final String nameAr;
   final int totalAbsences;
+  final String? notes;
 
   const Student({
     required this.id,
     required this.nameEn,
     required this.nameAr,
     this.totalAbsences = 0,
+    this.notes,
   });
 
   factory Student.fromMap(Map<String, dynamic> map, String documentId) {
@@ -17,6 +19,7 @@ class Student {
       nameEn: map['name_en'] as String? ?? '',
       nameAr: map['name_ar'] as String? ?? '',
       totalAbsences: (map['total_absences'] as num?)?.toInt() ?? 0,
+      notes: map['notes'] as String?,
     );
   }
 
@@ -26,6 +29,7 @@ class Student {
       'name_en': nameEn,
       'name_ar': nameAr,
       'total_absences': totalAbsences,
+      if (notes != null) 'notes': notes,
     };
   }
 
@@ -34,12 +38,14 @@ class Student {
     String? nameEn,
     String? nameAr,
     int? totalAbsences,
+    String? notes,
   }) {
     return Student(
       id: id ?? this.id,
       nameEn: nameEn ?? this.nameEn,
       nameAr: nameAr ?? this.nameAr,
       totalAbsences: totalAbsences ?? this.totalAbsences,
+      notes: notes ?? this.notes,
     );
   }
 

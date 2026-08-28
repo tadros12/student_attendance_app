@@ -3,13 +3,54 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/localization/app_localizations.dart';
 import '../models/student_model.dart';
 import '../providers/attendance_providers.dart';
+import 'admin_panel_view.dart';
 import 'scanner_view.dart';
 import 'widgets/attendance_action_sheet.dart';
 import 'widgets/excel_import_dialog.dart';
 import 'widgets/student_card.dart';
 
+final navigationIndexProvider = StateProvider<int>((ref) => 0);
+
 class MainDashboardView extends ConsumerWidget {
   const MainDashboardView({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final strings = AppStrings.of(context);
+    final currentIndex = ref.watch(navigationIndexProvider);
+
+    return Scaffold(
+      body: IndexedStack(
+        index: currentIndex,
+        children: const [
+          _AttendanceHomeTab(),
+          AdminPanelView(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentIndex,
+        onDestinationSelected: (idx) {
+          ref.read(navigationIndexProvider.notifier).state = idx;
+        },
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.co_present_outlined),
+            selectedIcon: const Icon(Icons.co_present),
+            label: strings.attendance,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.admin_panel_settings_outlined),
+            selectedIcon: const Icon(Icons.admin_panel_settings),
+            label: strings.adminPanel,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttendanceHomeTab extends ConsumerWidget {
+  const _AttendanceHomeTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -59,7 +100,7 @@ class MainDashboardView extends ConsumerWidget {
                             ref.read(localeProvider.notifier).toggleLocale();
                           },
                         ),
-                        // Admin / More Menu
+                        // More Menu
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -141,7 +182,7 @@ class MainDashboardView extends ConsumerWidget {
           ],
           body: allStudentsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) => Center(child: Text('Error loading local data: $err')),
+            error: (err, _) => Center(child: Text('Error loading data: $err')),
             data: (_) {
               if (filteredStudents.isEmpty) {
                 return Center(

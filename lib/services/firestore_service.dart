@@ -44,10 +44,10 @@ class AttendanceService {
     final existing = _prefs.getString(_localStudentsKey);
     if (existing == null || existing.isEmpty) {
       final initialStudents = [
-        const Student(id: 'STU-1001', nameEn: 'Ahmed Mansour', nameAr: 'أحمد منصور', totalAbsences: 0),
-        const Student(id: 'STU-1002', nameEn: 'Sarah Jenkins', nameAr: 'سارة جنكينز', totalAbsences: 1),
-        const Student(id: 'STU-1003', nameEn: 'Youssef Hassan', nameAr: 'يوسف حسن', totalAbsences: 3),
-        const Student(id: 'STU-1004', nameEn: 'Mariam Khalil', nameAr: 'مريم خليل', totalAbsences: 0),
+        const Student(id: 'STU-1001', nameEn: 'Ahmed Mansour', nameAr: 'أحمد منصور', totalAbsences: 0, notes: 'Honor roll student'),
+        const Student(id: 'STU-1002', nameEn: 'Sarah Jenkins', nameAr: 'سارة جنكينز', totalAbsences: 1, notes: 'Excused absence on Monday'),
+        const Student(id: 'STU-1003', nameEn: 'Youssef Hassan', nameAr: 'يوسف حسن', totalAbsences: 3, notes: 'Needs follow-up with advisor'),
+        const Student(id: 'STU-1004', nameEn: 'Mariam Khalil', nameAr: 'مريم خليل', totalAbsences: 0, notes: 'Class representative'),
         const Student(id: 'STU-1005', nameEn: 'Omar Farooq', nameAr: 'عمر فاروق', totalAbsences: 2),
         const Student(id: 'STU-1006', nameEn: 'Layla Mahmoud', nameAr: 'ليلى محمود', totalAbsences: 0),
       ];
@@ -83,7 +83,6 @@ class AttendanceService {
             .snapshots(includeMetadataChanges: true)
             .map((snapshot) {
           if (snapshot.docs.isEmpty) {
-            // Fallback to local if remote has not been seeded yet
             final local = _getLocalStudents();
             if (local.isNotEmpty) return local;
           }
@@ -99,7 +98,6 @@ class AttendanceService {
       }
     }
 
-    // Local stream with initial value
     Future.microtask(() => _localStudentStreamController.add(_getLocalStudents()));
     return _localStudentStreamController.stream;
   }
@@ -129,7 +127,6 @@ class AttendanceService {
       }
     }
 
-    // Fallback to local
     final localList = _getLocalStudents();
     try {
       return localList.firstWhere((s) => s.id == studentId);
@@ -138,7 +135,92 @@ class AttendanceService {
     }
   }
 
-  /// Records attendance and atomically updates absence count
+  /// Add a new student
+  Future<void> addStudent(Student student) async {
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
+      try {
+        await fs
+            .collection(AppConstants.studentsCollection)
+            .doc(student.id)
+            .set(student.toMap(), SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore add student error: $e');
+      }
+    }
+
+    final students = _getLocalStudents();
+    students.removeWhere((s) => s.id == student.id);
+    students.insert(0, student);
+    await _saveLocalStudents(students);
+  }
+
+  /// Update an existing student
+  Future<void> updateStudent(Student student) async {
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
+      try {
+        await fs
+            .collection(AppConstants.studentsCollection)
+            .doc(student.id)
+            .set(student.toMap(), SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore update student error: $e');
+      }
+    }
+
+    final students = _getLocalStudents();
+    final index = students.indexWhere((s) => s.id == student.id);
+    if (index != -1) {
+      students[index] = student;
+    } else {
+      students.add(student);
+    }
+    await _saveLocalStudents(students);
+  }
+
+  /// Delete a student
+  Future<void> deleteStudent(String studentId) async {
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
+      try {
+        await fs
+            .collection(AppConstants.studentsCollection)
+            .doc(studentId)
+            .delete();
+      } catch (e) {
+        debugPrint('Firestore delete student error: $e');
+      }
+    }
+
+    final students = _getLocalStudents();
+    students.removeWhere((s) => s.id == studentId);
+    await _saveLocalStudents(students);
+  }
+
+  /// Update student notes
+  Future<void> updateStudentNotes(String studentId, String notes) async {
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
+      try {
+        await fs
+            .collection(AppConstants.studentsCollection)
+            .doc(studentId)
+            .update({'notes': notes});
+      } catch (e) {
+        debugPrint('Firestore update notes error: $e');
+      }
+    }
+
+    final students = _getLocalStudents();
+    final index = students.indexWhere((s) => s.id == studentId);
+    if (index != -1) {
+      students[index] = students[index].copyWith(notes: notes);
+      await _saveLocalStudents(students);
+    }
+  }
+
+  /// Records attendance
   Future<void> recordAttendance({
     required String studentId,
     required bool status,
@@ -146,7 +228,6 @@ class AttendanceService {
     required String markedBy,
   }) async {
     final fs = _firestore;
-    // 1. Try Firestore if active
     if (_isFirebaseReady && fs != null) {
       try {
         final batch = fs.batch();
@@ -161,23 +242,32 @@ class AttendanceService {
         );
         batch.set(logDocRef, log.toMap());
 
+        final studentDocRef = fs.collection(AppConstants.studentsCollection).doc(studentId);
+        final Map<String, dynamic> studentUpdates = {};
         if (!status) {
-          final studentDocRef = fs.collection(AppConstants.studentsCollection).doc(studentId);
-          batch.update(studentDocRef, {'total_absences': FieldValue.increment(1)});
+          studentUpdates['total_absences'] = FieldValue.increment(1);
         }
+        if (notes != null && notes.isNotEmpty) {
+          studentUpdates['notes'] = notes;
+        }
+        if (studentUpdates.isNotEmpty) {
+          batch.update(studentDocRef, studentUpdates);
+        }
+
         await batch.commit();
       } catch (e) {
         debugPrint('Firestore write error: $e');
       }
     }
 
-    // 2. Always persist locally
+    // Always update locally
     final students = _getLocalStudents();
     final index = students.indexWhere((s) => s.id == studentId);
     if (index != -1) {
       final current = students[index];
       final updated = current.copyWith(
         totalAbsences: !status ? current.totalAbsences + 1 : current.totalAbsences,
+        notes: (notes != null && notes.isNotEmpty) ? notes : current.notes,
       );
       students[index] = updated;
       await _saveLocalStudents(students);
@@ -203,7 +293,6 @@ class AttendanceService {
     if (_isFirebaseReady && fs != null) {
       try {
         const int chunkSize = 450;
-
         for (int i = 0; i < newStudents.length; i += chunkSize) {
           final chunk = newStudents.sublist(
             i,
