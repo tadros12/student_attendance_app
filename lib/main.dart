@@ -6,20 +6,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/localization/app_localizations.dart';
 import 'core/theme/app_theme.dart';
-import 'firebase_options.dart';
 import 'providers/attendance_providers.dart';
 import 'views/main_dashboard_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase with fallback options
+  bool firebaseReady = false;
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    // Attempt Firebase initialization if options or google-services is configured
+    await Firebase.initializeApp();
+    firebaseReady = true;
   } catch (e) {
-    debugPrint('Firebase init notice: $e');
+    debugPrint('Firebase not configured yet, running in resilient local storage mode: $e');
   }
 
   // Initialize local persistent settings
@@ -29,6 +28,7 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        isFirebaseInitializedProvider.overrideWith((ref) => firebaseReady),
       ],
       child: const AttendanceApp(),
     ),

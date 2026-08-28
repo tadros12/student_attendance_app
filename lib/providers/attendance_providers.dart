@@ -8,16 +8,23 @@ import '../services/excel_service.dart';
 import '../services/firestore_service.dart';
 
 // Services
-final firestoreServiceProvider = Provider<FirestoreService>((ref) {
-  return FirestoreService();
+final isFirebaseInitializedProvider = StateProvider<bool>((ref) => false);
+
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('Initialize via ProviderScope overrides in main');
+});
+
+final attendanceServiceProvider = Provider<AttendanceService>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final isFirebaseReady = ref.watch(isFirebaseInitializedProvider);
+  return AttendanceService(
+    prefs: prefs,
+    isFirebaseReady: isFirebaseReady,
+  );
 });
 
 final excelServiceProvider = Provider<ExcelService>((ref) {
   return ExcelService();
-});
-
-final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError('Initialize via ProviderScope overrides in main');
 });
 
 // App Settings: Locale & Theme
@@ -57,7 +64,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
 // Student Stream
 final studentsStreamProvider = StreamProvider<List<Student>>((ref) {
-  final service = ref.watch(firestoreServiceProvider);
+  final service = ref.watch(attendanceServiceProvider);
   return service.getStudentsStream();
 });
 

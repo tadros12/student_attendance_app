@@ -25,7 +25,7 @@ class _ExcelImportDialogState extends ConsumerState<ExcelImportDialog> {
   Future<void> _importFile() async {
     final strings = AppStrings.of(context);
     final excelService = ref.read(excelServiceProvider);
-    final firestoreService = ref.read(firestoreServiceProvider);
+    final attendanceService = ref.read(attendanceServiceProvider);
 
     try {
       final File? file = await excelService.pickExcelFile();
@@ -40,6 +40,7 @@ class _ExcelImportDialogState extends ConsumerState<ExcelImportDialog> {
 
       if (students.isEmpty) {
         if (mounted) {
+          setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('No valid student rows found in Excel sheet.')),
           );
@@ -47,7 +48,7 @@ class _ExcelImportDialogState extends ConsumerState<ExcelImportDialog> {
         return;
       }
 
-      final count = await firestoreService.batchUploadStudents(students);
+      final count = await attendanceService.batchUploadStudents(students);
 
       if (mounted) {
         Navigator.pop(context);

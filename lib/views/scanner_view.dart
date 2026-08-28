@@ -35,10 +35,10 @@ class _ScannerViewState extends ConsumerState<ScannerView> {
 
     setState(() => _isProcessing = true);
     final strings = AppStrings.of(context);
-    final firestoreService = ref.read(firestoreServiceProvider);
+    final attendanceService = ref.read(attendanceServiceProvider);
 
     try {
-      final student = await firestoreService.getStudentById(scannedId);
+      final student = await attendanceService.getStudentById(scannedId);
 
       if (student != null && mounted) {
         await AttendanceActionSheet.show(context, student);

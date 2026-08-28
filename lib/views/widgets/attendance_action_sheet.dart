@@ -36,11 +36,11 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
   Future<void> _recordAttendance(bool status) async {
     setState(() => _isSubmitting = true);
     final strings = AppStrings.of(context);
-    final firestoreService = ref.read(firestoreServiceProvider);
+    final attendanceService = ref.read(attendanceServiceProvider);
 
     try {
       final deviceName = await DeviceHelper.getDeviceIdentifier();
-      await firestoreService.recordAttendance(
+      await attendanceService.recordAttendance(
         studentId: widget.student.id,
         status: status,
         notes: _notesController.text.trim(),
