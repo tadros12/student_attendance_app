@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/theme/app_theme.dart';
+import 'firebase_options.dart';
 import 'providers/attendance_providers.dart';
 import 'views/main_dashboard_view.dart';
 
@@ -13,10 +14,13 @@ Future<void> main() async {
 
   bool firebaseReady = false;
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     firebaseReady = true;
+    debugPrint('Firebase initialized successfully with project attentadce');
   } catch (e) {
-    debugPrint('Firebase not configured yet, running in resilient local storage mode: $e');
+    debugPrint('Firebase init fallback: $e');
   }
 
   // Initialize local persistent settings
