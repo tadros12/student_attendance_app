@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,31 +11,40 @@ import 'providers/attendance_providers.dart';
 import 'views/main_dashboard_view.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  bool firebaseReady = false;
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      debugPrint('Flutter runtime error: ${details.exception}');
+    };
+
+    bool firebaseReady = false;
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      firebaseReady = true;
+      debugPrint('Firebase initialized successfully with project attentadce');
+    } catch (e) {
+      debugPrint('Firebase init fallback: $e');
+    }
+
+    // Initialize local persistent settings
+    final sharedPreferences = await SharedPreferences.getInstance();
+
+    runApp(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+          isFirebaseInitializedProvider.overrideWith((ref) => firebaseReady),
+        ],
+        child: const AttendanceApp(),
+      ),
     );
-    firebaseReady = true;
-    debugPrint('Firebase initialized successfully with project attentadce');
-  } catch (e) {
-    debugPrint('Firebase init fallback: $e');
-  }
-
-  // Initialize local persistent settings
-  final sharedPreferences = await SharedPreferences.getInstance();
-
-  runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-        isFirebaseInitializedProvider.overrideWith((ref) => firebaseReady),
-      ],
-      child: const AttendanceApp(),
-    ),
-  );
+  }, (error, stack) {
+    debugPrint('Unhandled async error: $error\n$stack');
+  });
 }
 
 class AttendanceApp extends ConsumerWidget {
