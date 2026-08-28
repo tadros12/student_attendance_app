@@ -14,20 +14,31 @@ class AppStrings {
   }
 
   // App Navigation & Titles
-  String get appTitle => isArabic ? 'نظام تتبع الحضور' : 'Attendance Tracker';
-  String get attendance => isArabic ? 'الحضور' : 'Attendance';
+  String get appTitle => isArabic ? 'نظام تسجيل الحضور' : 'Attendance System';
+  String get attendance => isArabic ? 'تسجيل الحضور' : 'Attendance';
   String get adminPanel => isArabic ? 'لوحة التحكم' : 'Admin Panel';
   String get stats => isArabic ? 'نظرة عامة على الإحصائيات' : 'Overview & Stats';
-  String get manageStudents => isArabic ? 'إدارة الطلاب' : 'Manage Students';
+  String get managePeople => isArabic ? 'إدارة الأشخاص' : 'Manage People';
 
-  // Search & List
+  // Date & Day strings
+  String get today => isArabic ? 'اليوم' : 'Today';
+  String get todayAttendance => isArabic ? 'حضور اليوم' : "Today's Attendance";
+  String get markedAt => isArabic ? 'تم التسجيل في' : 'Recorded at';
+  String get alreadyMarkedToday => isArabic ? 'تم تسجيل حالة هذا اليوم مسبقاً' : 'Status already recorded for today';
+  String get updateTodayStatus => isArabic ? 'تعديل حالة اليوم' : "Update Today's Status";
+  String get attendedToday => isArabic ? 'حاضر اليوم' : 'Attended Today';
+  String get absentToday => isArabic ? 'غائب اليوم' : 'Absent Today';
+  String get unmarkedToday => isArabic ? 'غير مسجل اليوم' : 'Not Marked Yet';
+
+  // Search & Main Panel (Using "حاضر" / Attendee)
   String get searchHint => isArabic ? 'ابحث بالاسم (عربي/إنجليزي) أو الرقم...' : 'Search name (EN/AR) or ID...';
-  String get totalStudents => isArabic ? 'إجمالي الطلاب' : 'Total Students';
+  String get totalAttendees => isArabic ? 'إجمالي الحاضرين اليوم' : 'Attended Today';
+  String get totalPeople => isArabic ? 'إجمالي الأشخاص' : 'Total People';
   String get totalAbsences => isArabic ? 'إجمالي الغياب' : 'Total Absences';
-  String get perfectAttendance => isArabic ? 'حضور مثالي (0 غياب)' : 'Perfect Attendance (0)';
-  String get avgAbsenceRate => isArabic ? 'متوسط الغياب/طالب' : 'Avg Absences/Student';
+  String get perfectAttendance => isArabic ? 'التزام كامل (0 غياب)' : 'Zero Absences';
+  String get avgAbsenceRate => isArabic ? 'معدل الغياب' : 'Avg Absences/Person';
   String get absencesCount => isArabic ? 'مرات الغياب' : 'Absences';
-  String get noStudentsFound => isArabic ? 'لا يوجد طلاب مطابقين' : 'No students found';
+  String get noPeopleFound => isArabic ? 'لا توجد نتائج مطابقة' : 'No matching results found';
 
   // Attendance Actions
   String get attended => isArabic ? 'حاضر' : 'Attended';
@@ -42,32 +53,32 @@ class AppStrings {
   String get delete => isArabic ? 'حذف' : 'Delete';
   String get edit => isArabic ? 'تعديل' : 'Edit';
 
-  // Student CRUD
-  String get addStudent => isArabic ? 'إضافة طالب جديد' : 'Add New Student';
-  String get editStudent => isArabic ? 'تعديل بيانات الطالب' : 'Edit Student';
-  String get deleteStudent => isArabic ? 'حذف الطالب' : 'Delete Student';
-  String get confirmDelete => isArabic ? 'هل أنت متأكد من رغبتك في حذف هذا الطالب؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete this student? This action cannot be undone.';
-  String get studentNameEn => isArabic ? 'الاسم بالإنجليزية' : 'English Name';
-  String get studentNameAr => isArabic ? 'الاسم بالعربية' : 'Arabic Name';
-  String get studentId => isArabic ? 'كود الطالب (ID)' : 'Student ID / Code';
+  // Admin Panel (Using "شخص" / Person)
+  String get addPerson => isArabic ? 'إضافة شخص جديد' : 'Add New Person';
+  String get editPerson => isArabic ? 'تعديل بيانات الشخص' : 'Edit Person';
+  String get deletePerson => isArabic ? 'حذف الشخص' : 'Delete Person';
+  String get confirmDelete => isArabic ? 'هل أنت متأكد من رغبتك في حذف هذا الشخص؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete this person? This action cannot be undone.';
+  String get personNameEn => isArabic ? 'الاسم بالإنجليزية' : 'English Name';
+  String get personNameAr => isArabic ? 'الاسم بالعربية' : 'Arabic Name';
+  String get personId => isArabic ? 'كود الشخص (ID)' : 'Person ID / Code';
   String get initialAbsences => isArabic ? 'عدد مرات الغياب' : 'Absence Count';
-  String get autoGenerateId => isArabic ? 'توليد تلقائي' : 'Auto Generate';
-  String get studentAdded => isArabic ? 'تمت إضافة الطالب بنجاح' : 'Student added successfully';
-  String get studentUpdated => isArabic ? 'تم تحديث بيانات الطالب' : 'Student updated successfully';
-  String get studentDeleted => isArabic ? 'تم حذف الطالب' : 'Student deleted';
+  String get autoGenerateId => isArabic ? 'توليد كود تلقائي' : 'Auto Generate ID';
+  String get personAdded => isArabic ? 'تمت إضافة الشخص بنجاح' : 'Person added successfully';
+  String get personUpdated => isArabic ? 'تم تحديث بيانات الشخص' : 'Person updated successfully';
+  String get personDeleted => isArabic ? 'تم حذف الشخص' : 'Person deleted';
   String get fillRequiredFields => isArabic ? 'يرجى إدخال جميع الحقول المطلوبة' : 'Please fill in all required fields';
 
   // QR Code
   String get scanQr => isArabic ? 'مسح رمز QR' : 'Scan QR';
   String get viewQr => isArabic ? 'رمز QR' : 'View QR';
-  String get qrCodeTitle => isArabic ? 'رمز الاستجابة السريعة للطالب' : 'Student QR Code';
+  String get qrCodeTitle => isArabic ? 'رمز الاستجابة السريعة (QR)' : 'Person QR Code';
   String get qrInstructions => isArabic ? 'استخدم هذا الرمز للمسح السريع وتسجيل الحضور' : 'Use this code for instant attendance scanning';
-  String get studentNotFound => isArabic ? 'لم يتم العثور على الطالب' : 'Student record not found';
+  String get personNotFound => isArabic ? 'لم يتم العثور على السجل' : 'Record not found';
   String get attendanceRecorded => isArabic ? 'تم تسجيل الحضور بنجاح' : 'Attendance recorded successfully';
 
   // Excel & Settings
   String get importExcel => isArabic ? 'استيراد من Excel' : 'Import Excel';
-  String get importSuccess => isArabic ? 'تم استيراد بيانات الطلاب بنجاح' : 'Students imported successfully';
+  String get importSuccess => isArabic ? 'تم استيراد البيانات بنجاح' : 'Data imported successfully';
   String get selectFile => isArabic ? 'اختر ملف Excel (.xlsx)' : 'Select Excel File (.xlsx)';
   String get parsingFile => isArabic ? 'جاري معالجة الملف والرفع...' : 'Parsing file and uploading...';
   String get toggleTheme => isArabic ? 'تبديل المظهر' : 'Toggle Theme';

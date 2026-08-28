@@ -49,7 +49,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
           children: [
             Icon(Icons.delete_outline, color: Colors.red.shade700),
             const SizedBox(width: 10),
-            Text(strings.deleteStudent),
+            Text(strings.deletePerson),
           ],
         ),
         content: Text('${strings.confirmDelete}\n\n• $primaryName (${student.id})'),
@@ -65,7 +65,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
               await ref.read(attendanceServiceProvider).deleteStudent(student.id);
               messenger.showSnackBar(
                 SnackBar(
-                  content: Text('${strings.studentDeleted}: $primaryName'),
+                  content: Text('${strings.personDeleted}: $primaryName'),
                   backgroundColor: Colors.red.shade800,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -113,7 +113,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
                             style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            strings.manageStudents,
+                            strings.managePeople,
                             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                           ),
                         ],
@@ -149,7 +149,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
                               Expanded(
                                 child: _buildStatCard(
                                   context,
-                                  title: strings.totalStudents,
+                                  title: strings.totalPeople,
                                   value: '$total',
                                   icon: Icons.people_alt,
                                   color: const Color(0xFF1A73E8), // Google Blue
@@ -216,7 +216,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
               ),
             ),
 
-            // Students Manage List
+            // People Manage List
             allStudentsAsync.when(
               loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
               error: (err, _) => SliverFillRemaining(child: Center(child: Text('Error: $err'))),
@@ -232,7 +232,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
                   return SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
-                      child: Text(strings.noStudentsFound, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.outline)),
+                      child: Text(strings.noPeopleFound, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.outline)),
                     ),
                   );
                 }
@@ -320,7 +320,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => StudentEditDialog.show(context),
         icon: const Icon(Icons.person_add_rounded),
-        label: Text(strings.addStudent),
+        label: Text(strings.addPerson),
       ),
     );
   }

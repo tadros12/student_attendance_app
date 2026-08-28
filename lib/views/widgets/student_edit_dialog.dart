@@ -5,7 +5,7 @@ import '../../models/student_model.dart';
 import '../../providers/attendance_providers.dart';
 
 class StudentEditDialog extends ConsumerStatefulWidget {
-  final Student? student; // null if creating a new student
+  final Student? student;
 
   const StudentEditDialog({super.key, this.student});
 
@@ -48,7 +48,7 @@ class _StudentEditDialogState extends ConsumerState<StudentEditDialog> {
 
   void _generateId() {
     final rand = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000));
-    _idController.text = 'STU-$rand';
+    _idController.text = 'ID-$rand';
   }
 
   @override
@@ -87,7 +87,7 @@ class _StudentEditDialogState extends ConsumerState<StudentEditDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEditing ? strings.studentUpdated : strings.studentAdded),
+            content: Text(_isEditing ? strings.personUpdated : strings.personAdded),
             backgroundColor: Colors.green.shade700,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -124,14 +124,14 @@ class _StudentEditDialogState extends ConsumerState<StudentEditDialog> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    _isEditing ? strings.editStudent : strings.addStudent,
+                    _isEditing ? strings.editPerson : strings.addPerson,
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
 
-              // Student ID
+              // ID
               Row(
                 children: [
                   Expanded(
@@ -139,7 +139,7 @@ class _StudentEditDialogState extends ConsumerState<StudentEditDialog> {
                       controller: _idController,
                       enabled: !_isEditing,
                       decoration: InputDecoration(
-                        labelText: strings.studentId,
+                        labelText: strings.personId,
                         prefixIcon: const Icon(Icons.badge_outlined),
                       ),
                       validator: (v) => (v == null || v.trim().isEmpty) ? strings.fillRequiredFields : null,
@@ -161,7 +161,7 @@ class _StudentEditDialogState extends ConsumerState<StudentEditDialog> {
               TextFormField(
                 controller: _nameEnController,
                 decoration: InputDecoration(
-                  labelText: strings.studentNameEn,
+                  labelText: strings.personNameEn,
                   prefixIcon: const Icon(Icons.language),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty) ? strings.fillRequiredFields : null,
@@ -173,7 +173,7 @@ class _StudentEditDialogState extends ConsumerState<StudentEditDialog> {
                 controller: _nameArController,
                 textDirection: TextDirection.rtl,
                 decoration: InputDecoration(
-                  labelText: strings.studentNameAr,
+                  labelText: strings.personNameAr,
                   prefixIcon: const Icon(Icons.translate),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty) ? strings.fillRequiredFields : null,

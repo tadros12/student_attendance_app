@@ -17,6 +17,8 @@ class AttendanceService {
 
   final StreamController<List<Student>> _localStudentStreamController =
       StreamController<List<Student>>.broadcast();
+  final StreamController<Map<String, AttendanceLog>> _localTodayLogsStreamController =
+      StreamController<Map<String, AttendanceLog>>.broadcast();
 
   AttendanceService({
     FirebaseFirestore? firestore,
@@ -44,10 +46,10 @@ class AttendanceService {
     final existing = _prefs.getString(_localStudentsKey);
     if (existing == null || existing.isEmpty) {
       final initialStudents = [
-        const Student(id: 'STU-1001', nameEn: 'Ahmed Mansour', nameAr: 'أحمد منصور', totalAbsences: 0, notes: 'Honor roll student'),
-        const Student(id: 'STU-1002', nameEn: 'Sarah Jenkins', nameAr: 'سارة جنكينز', totalAbsences: 1, notes: 'Excused absence on Monday'),
-        const Student(id: 'STU-1003', nameEn: 'Youssef Hassan', nameAr: 'يوسف حسن', totalAbsences: 3, notes: 'Needs follow-up with advisor'),
-        const Student(id: 'STU-1004', nameEn: 'Mariam Khalil', nameAr: 'مريم خليل', totalAbsences: 0, notes: 'Class representative'),
+        const Student(id: 'STU-1001', nameEn: 'Ahmed Mansour', nameAr: 'أحمد منصور', totalAbsences: 0, notes: 'Honor roll member'),
+        const Student(id: 'STU-1002', nameEn: 'Sarah Jenkins', nameAr: 'سارة جنكينز', totalAbsences: 1, notes: 'Excused on Monday'),
+        const Student(id: 'STU-1003', nameEn: 'Youssef Hassan', nameAr: 'يوسف حسن', totalAbsences: 3, notes: 'Follow up required'),
+        const Student(id: 'STU-1004', nameEn: 'Mariam Khalil', nameAr: 'مريم خليل', totalAbsences: 0, notes: 'Team leader'),
         const Student(id: 'STU-1005', nameEn: 'Omar Farooq', nameAr: 'عمر فاروق', totalAbsences: 2),
         const Student(id: 'STU-1006', nameEn: 'Layla Mahmoud', nameAr: 'ليلى محمود', totalAbsences: 0),
       ];
@@ -73,7 +75,36 @@ class AttendanceService {
     _localStudentStreamController.add(students);
   }
 
-  /// Real-time stream of all students (Firestore or resilient Local Cache)
+  List<AttendanceLog> _getLocalLogs() {
+    final jsonStr = _prefs.getString(_localLogsKey);
+    if (jsonStr == null || jsonStr.isEmpty) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((item) => AttendanceLog.fromMap(Map<String, dynamic>.from(item), item['log_id'] ?? '')).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> _saveLocalLogs(List<AttendanceLog> logs) async {
+    final list = logs.map((l) => l.toMap()).toList();
+    await _prefs.setString(_localLogsKey, jsonEncode(list));
+    _notifyTodayLogs();
+  }
+
+  void _notifyTodayLogs() {
+    final todayKey = AttendanceLog.formatDateKey(DateTime.now());
+    final logs = _getLocalLogs();
+    final todayMap = <String, AttendanceLog>{};
+    for (final log in logs) {
+      if (log.dateKey == todayKey) {
+        todayMap[log.studentId] = log;
+      }
+    }
+    _localTodayLogsStreamController.add(todayMap);
+  }
+
+  /// Real-time stream of all students
   Stream<List<Student>> getStudentsStream() {
     final fs = _firestore;
     if (_isFirebaseReady && fs != null) {
@@ -90,7 +121,7 @@ class AttendanceService {
               .map((doc) => Student.fromMap(doc.data(), doc.id))
               .toList();
         }).handleError((error) {
-          debugPrint('Firestore stream error, falling back to local: $error');
+          debugPrint('Firestore stream error: $error');
           return _getLocalStudents();
         });
       } catch (e) {
@@ -100,6 +131,41 @@ class AttendanceService {
 
     Future.microtask(() => _localStudentStreamController.add(_getLocalStudents()));
     return _localStudentStreamController.stream;
+  }
+
+  /// Real-time stream of today's attendance logs (Map of studentId -> AttendanceLog)
+  Stream<Map<String, AttendanceLog>> getTodayAttendanceMapStream() {
+    final todayKey = AttendanceLog.formatDateKey(DateTime.now());
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
+      try {
+        return fs
+            .collection(AppConstants.attendanceLogsCollection)
+            .where('date_key', isEqualTo: todayKey)
+            .snapshots(includeMetadataChanges: true)
+            .map((snapshot) {
+          final map = <String, AttendanceLog>{};
+          for (final doc in snapshot.docs) {
+            final log = AttendanceLog.fromMap(doc.data(), doc.id);
+            map[log.studentId] = log;
+          }
+          return map;
+        }).handleError((error) {
+          debugPrint('Firestore today logs stream error: $error');
+          final logs = _getLocalLogs();
+          final localMap = <String, AttendanceLog>{};
+          for (final log in logs) {
+            if (log.dateKey == todayKey) localMap[log.studentId] = log;
+          }
+          return localMap;
+        });
+      } catch (e) {
+        debugPrint('Firestore today logs error: $e');
+      }
+    }
+
+    Future.microtask(() => _notifyTodayLogs());
+    return _localTodayLogsStreamController.stream;
   }
 
   /// Fetch a single student by ID
@@ -135,7 +201,33 @@ class AttendanceService {
     }
   }
 
-  /// Add a new student
+  /// Get today's attendance log for a specific student (if already marked today)
+  Future<AttendanceLog?> getTodayLogForStudent(String studentId) async {
+    final todayKey = AttendanceLog.formatDateKey(DateTime.now());
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
+      try {
+        final query = await fs
+            .collection(AppConstants.attendanceLogsCollection)
+            .where('student_id', isEqualTo: studentId)
+            .where('date_key', isEqualTo: todayKey)
+            .limit(1)
+            .get();
+        if (query.docs.isNotEmpty) {
+          return AttendanceLog.fromMap(query.docs.first.data(), query.docs.first.id);
+        }
+      } catch (_) {}
+    }
+
+    final localLogs = _getLocalLogs();
+    try {
+      return localLogs.firstWhere((l) => l.studentId == studentId && l.dateKey == todayKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Add a new person
   Future<void> addStudent(Student student) async {
     final fs = _firestore;
     if (_isFirebaseReady && fs != null) {
@@ -145,7 +237,7 @@ class AttendanceService {
             .doc(student.id)
             .set(student.toMap(), SetOptions(merge: true));
       } catch (e) {
-        debugPrint('Firestore add student error: $e');
+        debugPrint('Firestore add person error: $e');
       }
     }
 
@@ -155,7 +247,7 @@ class AttendanceService {
     await _saveLocalStudents(students);
   }
 
-  /// Update an existing student
+  /// Update an existing person
   Future<void> updateStudent(Student student) async {
     final fs = _firestore;
     if (_isFirebaseReady && fs != null) {
@@ -165,7 +257,7 @@ class AttendanceService {
             .doc(student.id)
             .set(student.toMap(), SetOptions(merge: true));
       } catch (e) {
-        debugPrint('Firestore update student error: $e');
+        debugPrint('Firestore update person error: $e');
       }
     }
 
@@ -179,7 +271,7 @@ class AttendanceService {
     await _saveLocalStudents(students);
   }
 
-  /// Delete a student
+  /// Delete a person
   Future<void> deleteStudent(String studentId) async {
     final fs = _firestore;
     if (_isFirebaseReady && fs != null) {
@@ -189,7 +281,7 @@ class AttendanceService {
             .doc(studentId)
             .delete();
       } catch (e) {
-        debugPrint('Firestore delete student error: $e');
+        debugPrint('Firestore delete person error: $e');
       }
     }
 
@@ -198,7 +290,7 @@ class AttendanceService {
     await _saveLocalStudents(students);
   }
 
-  /// Update student notes
+  /// Update person notes
   Future<void> updateStudentNotes(String studentId, String notes) async {
     final fs = _firestore;
     if (_isFirebaseReady && fs != null) {
@@ -220,39 +312,64 @@ class AttendanceService {
     }
   }
 
-  /// Records attendance
+  /// Records attendance with Same-Day Duplicate Prevention
+  /// If already recorded today, updates the existing entry and corrects absence counters.
   Future<void> recordAttendance({
     required String studentId,
     required bool status,
     String? notes,
     required String markedBy,
   }) async {
+    final now = DateTime.now();
+    final todayKey = AttendanceLog.formatDateKey(now);
+    final logDocId = '${studentId}_$todayKey';
+
+    // Check existing log for today
+    final existingLog = await getTodayLogForStudent(studentId);
+    int absenceDelta = 0;
+
+    if (existingLog == null) {
+      // First time recording today
+      if (!status) absenceDelta = 1;
+    } else {
+      // Modifying today's record
+      if (existingLog.status == false && status == true) {
+        // Was absent, now attended -> reduce absence count
+        absenceDelta = -1;
+      } else if (existingLog.status == true && status == false) {
+        // Was attended, now absent -> increase absence count
+        absenceDelta = 1;
+      }
+    }
+
     final fs = _firestore;
     if (_isFirebaseReady && fs != null) {
       try {
         final batch = fs.batch();
-        final logDocRef = fs.collection(AppConstants.attendanceLogsCollection).doc();
+        final logDocRef = fs.collection(AppConstants.attendanceLogsCollection).doc(logDocId);
         final log = AttendanceLog(
-          logId: logDocRef.id,
+          logId: logDocId,
           studentId: studentId,
-          date: DateTime.now(),
+          date: now,
+          dateKey: todayKey,
           status: status,
           notes: notes,
           markedBy: markedBy,
         );
-        batch.set(logDocRef, log.toMap());
+        batch.set(logDocRef, log.toMap(), SetOptions(merge: true));
 
         final studentDocRef = fs.collection(AppConstants.studentsCollection).doc(studentId);
-        final Map<String, dynamic> studentUpdates = {};
-        if (!status) {
-          studentUpdates['total_absences'] = FieldValue.increment(1);
+        final Map<String, dynamic> studentUpdates = {
+          'last_attendance_date': todayKey,
+          'today_status': status,
+        };
+        if (absenceDelta != 0) {
+          studentUpdates['total_absences'] = FieldValue.increment(absenceDelta);
         }
         if (notes != null && notes.isNotEmpty) {
           studentUpdates['notes'] = notes;
         }
-        if (studentUpdates.isNotEmpty) {
-          batch.update(studentDocRef, studentUpdates);
-        }
+        batch.update(studentDocRef, studentUpdates);
 
         await batch.commit();
       } catch (e) {
@@ -260,31 +377,41 @@ class AttendanceService {
       }
     }
 
-    // Always update locally
+    // 2. Always update local storage
     final students = _getLocalStudents();
     final index = students.indexWhere((s) => s.id == studentId);
     if (index != -1) {
       final current = students[index];
+      final newAbsences = (current.totalAbsences + absenceDelta).clamp(0, 9999);
       final updated = current.copyWith(
-        totalAbsences: !status ? current.totalAbsences + 1 : current.totalAbsences,
+        totalAbsences: newAbsences,
         notes: (notes != null && notes.isNotEmpty) ? notes : current.notes,
+        lastAttendanceDate: todayKey,
+        todayStatus: status,
       );
       students[index] = updated;
       await _saveLocalStudents(students);
     }
 
-    // Save log locally
-    final logsJson = _prefs.getString(_localLogsKey);
-    List<dynamic> logs = logsJson != null ? jsonDecode(logsJson) : [];
-    logs.add({
-      'log_id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'student_id': studentId,
-      'date': DateTime.now().toIso8601String(),
-      'status': status,
-      'notes': notes,
-      'marked_by': markedBy,
-    });
-    await _prefs.setString(_localLogsKey, jsonEncode(logs));
+    // Update local logs
+    final logs = _getLocalLogs();
+    final logIndex = logs.indexWhere((l) => l.studentId == studentId && l.dateKey == todayKey);
+    final newLog = AttendanceLog(
+      logId: logDocId,
+      studentId: studentId,
+      date: now,
+      dateKey: todayKey,
+      status: status,
+      notes: notes,
+      markedBy: markedBy,
+    );
+
+    if (logIndex != -1) {
+      logs[logIndex] = newLog;
+    } else {
+      logs.add(newLog);
+    }
+    await _saveLocalLogs(logs);
   }
 
   /// Batch upload parsed students from Excel
@@ -312,7 +439,6 @@ class AttendanceService {
       }
     }
 
-    // Merge locally
     final current = _getLocalStudents();
     final Map<String, Student> map = {for (var s in current) s.id: s};
     for (var s in newStudents) {

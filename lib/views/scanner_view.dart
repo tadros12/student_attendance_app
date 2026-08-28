@@ -45,14 +45,13 @@ class _ScannerViewState extends ConsumerState<ScannerView> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${strings.studentNotFound}: $scannedId'),
+            content: Text('${strings.personNotFound}: $scannedId'),
             backgroundColor: Colors.red.shade700,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } finally {
-      // Small pause before unlocking scanner to prevent double scan
       await Future.delayed(const Duration(seconds: 1));
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -82,7 +81,6 @@ class _ScannerViewState extends ConsumerState<ScannerView> {
             controller: _controller,
             onDetect: _handleBarcode,
           ),
-          // Viewfinder Target Overlay
           Center(
             child: Container(
               width: 260,

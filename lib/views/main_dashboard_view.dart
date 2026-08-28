@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../core/localization/app_localizations.dart';
 import '../models/student_model.dart';
 import '../providers/attendance_providers.dart';
@@ -56,21 +57,26 @@ class _AttendanceHomeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppStrings.of(context);
     final theme = Theme.of(context);
+    final isArabic = strings.isArabic;
 
     final filteredStudents = ref.watch(filteredStudentsProvider);
     final allStudentsAsync = ref.watch(studentsStreamProvider);
+    final todayMapAsync = ref.watch(todayAttendanceMapProvider);
+
+    final formattedToday = DateFormat.yMMMMEEEEd(isArabic ? 'ar' : 'en').format(DateTime.now());
 
     return Scaffold(
       body: SafeArea(
         child: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            // Top App Bar & Search
+            // Top App Bar, Date Banner & Search
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Pixel-style Search & Action Bar
+                    // Search & Action Bar
                     Row(
                       children: [
                         Expanded(
@@ -136,19 +142,46 @@ class _AttendanceHomeTab extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
-                    // Quick Stats Bar
+                    // Today's Date Banner
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_month, size: 18, color: theme.colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            formattedToday,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Quick Stats Bar (Today's Attendance Stats)
                     allStudentsAsync.maybeWhen(
                       data: (students) {
-                        final totalStudents = students.length;
-                        final totalAbsences = students.fold<int>(
-                          0,
-                          (sum, student) => sum + student.totalAbsences,
+                        final totalPeople = students.length;
+                        final todayMap = todayMapAsync.maybeWhen(
+                          data: (map) => map,
+                          orElse: () => {},
                         );
 
+                        final attendedToday = todayMap.values.where((l) => l.status == true).length;
+                        final absentToday = todayMap.values.where((l) => l.status == false).length;
+
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(16),
@@ -158,16 +191,26 @@ class _AttendanceHomeTab extends ConsumerWidget {
                             children: [
                               _buildMetric(
                                 context,
-                                label: strings.totalStudents,
-                                value: '$totalStudents',
-                                icon: Icons.people_alt_outlined,
+                                label: strings.attendedToday,
+                                value: '$attendedToday',
+                                icon: Icons.check_circle_outline,
+                                color: Colors.green.shade700,
                               ),
-                              Container(height: 28, width: 1, color: Colors.grey.shade400),
+                              Container(height: 24, width: 1, color: Colors.grey.shade400),
                               _buildMetric(
                                 context,
-                                label: strings.totalAbsences,
-                                value: '$totalAbsences',
-                                icon: Icons.event_busy_outlined,
+                                label: strings.absentToday,
+                                value: '$absentToday',
+                                icon: Icons.cancel_outlined,
+                                color: Colors.red.shade700,
+                              ),
+                              Container(height: 24, width: 1, color: Colors.grey.shade400),
+                              _buildMetric(
+                                context,
+                                label: strings.totalPeople,
+                                value: '$totalPeople',
+                                icon: Icons.group_outlined,
+                                color: theme.colorScheme.primary,
                               ),
                             ],
                           ),
@@ -196,7 +239,7 @@ class _AttendanceHomeTab extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        strings.noStudentsFound,
+                        strings.noPeopleFound,
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: theme.colorScheme.outline,
                         ),
@@ -240,24 +283,27 @@ class _AttendanceHomeTab extends ConsumerWidget {
     required String label,
     required String value,
     required IconData icon,
+    required Color color,
   }) {
     final theme = Theme.of(context);
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20, color: theme.colorScheme.primary),
-        const SizedBox(width: 8),
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 6),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               value,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
             ),
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 9,
               ),
             ),
           ],

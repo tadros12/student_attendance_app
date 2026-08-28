@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
 import '../core/utils/arabic_normalizer.dart';
+import '../models/attendance_log_model.dart';
 import '../models/student_model.dart';
 import '../services/excel_service.dart';
 import '../services/firestore_service.dart';
@@ -66,6 +67,12 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 final studentsStreamProvider = StreamProvider<List<Student>>((ref) {
   final service = ref.watch(attendanceServiceProvider);
   return service.getStudentsStream();
+});
+
+// Today's Attendance Map Provider (studentId -> AttendanceLog)
+final todayAttendanceMapProvider = StreamProvider<Map<String, AttendanceLog>>((ref) {
+  final service = ref.watch(attendanceServiceProvider);
+  return service.getTodayAttendanceMapStream();
 });
 
 // Search Query State

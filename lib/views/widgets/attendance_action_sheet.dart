@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/utils/device_helper.dart';
+import '../../models/attendance_log_model.dart';
 import '../../models/student_model.dart';
 import '../../providers/attendance_providers.dart';
 
@@ -26,6 +28,29 @@ class AttendanceActionSheet extends ConsumerStatefulWidget {
 class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
   final TextEditingController _notesController = TextEditingController();
   bool _isSubmitting = false;
+  AttendanceLog? _existingTodayLog;
+  bool _isCheckingExisting = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _notesController.text = widget.student.notes ?? '';
+    _checkTodayLog();
+  }
+
+  Future<void> _checkTodayLog() async {
+    final service = ref.read(attendanceServiceProvider);
+    final log = await service.getTodayLogForStudent(widget.student.id);
+    if (mounted) {
+      setState(() {
+        _existingTodayLog = log;
+        if (log != null && log.notes != null && log.notes!.isNotEmpty) {
+          _notesController.text = log.notes!;
+        }
+        _isCheckingExisting = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -49,6 +74,7 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
 
       if (mounted) {
         Navigator.pop(context);
+        final primaryName = strings.isArabic ? widget.student.nameAr : widget.student.nameEn;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -60,7 +86,7 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '${widget.student.nameEn} • ${status ? strings.attended : strings.absent}',
+                    '$primaryName • ${status ? strings.attendedToday : strings.absentToday}',
                   ),
                 ),
               ],
@@ -89,6 +115,8 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
     final isArabic = strings.isArabic;
     final primaryName = isArabic ? widget.student.nameAr : widget.student.nameEn;
 
+    final formattedDate = DateFormat.yMMMMEEEEd(isArabic ? 'ar' : 'en').format(DateTime.now());
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -114,9 +142,36 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Student Information Header
+            // Date Pill
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.calendar_today, size: 14, color: theme.colorScheme.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Person Name & ID
             Text(
               primaryName,
               style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -130,7 +185,50 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Already Marked Notice / Badge (Prevent Duplicate Confusion)
+            if (!_isCheckingExisting && _existingTodayLog != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _existingTodayLog!.status
+                      ? Colors.green.shade600.withValues(alpha: 0.12)
+                      : Colors.red.shade600.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: _existingTodayLog!.status ? Colors.green.shade400 : Colors.red.shade400,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _existingTodayLog!.status ? Icons.check_circle : Icons.cancel,
+                      color: _existingTodayLog!.status ? Colors.green.shade700 : Colors.red.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            strings.alreadyMarkedToday,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          Text(
+                            '${strings.markedAt} ${DateFormat.jm(isArabic ? 'ar' : 'en').format(_existingTodayLog!.date)} (${_existingTodayLog!.status ? strings.attended : strings.absent})',
+                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Optional Notes Field
             TextField(
@@ -143,7 +241,7 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
               maxLines: 2,
               enabled: !_isSubmitting,
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
             // Attendance Action Buttons
             if (_isSubmitting)
