@@ -146,7 +146,7 @@ class StudentCard extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: absenceBadgeColor.withValues(alpha: 0.12),
+                      color: absenceBadgeColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -180,7 +180,7 @@ class StudentCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: todayStatusColor.withValues(alpha: 0.1),
+                  color: todayStatusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -207,7 +207,7 @@ class StudentCard extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(

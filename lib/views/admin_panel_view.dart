@@ -167,7 +167,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                    color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Row(
@@ -494,7 +494,7 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: dateStatusColor.withValues(alpha: 0.1),
+                                          color: dateStatusColor.withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Row(
@@ -570,16 +570,16 @@ class _AdminPanelViewState extends ConsumerState<AdminPanelView> with SingleTick
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.09),
+        color: color.withOpacity(0.09),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.22), width: 1),
+        border: Border.all(color: color.withOpacity(0.22), width: 1),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.18),
+              color: color.withOpacity(0.18),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 18),

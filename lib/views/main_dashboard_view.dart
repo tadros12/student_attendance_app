@@ -148,7 +148,7 @@ class _AttendanceHomeTab extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+                        color: theme.colorScheme.primaryContainer.withOpacity(0.45),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -183,7 +183,7 @@ class _AttendanceHomeTab extends ConsumerWidget {
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(

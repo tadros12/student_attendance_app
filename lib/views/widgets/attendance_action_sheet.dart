@@ -149,7 +149,7 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -193,8 +193,8 @@ class _AttendanceActionSheetState extends ConsumerState<AttendanceActionSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: _existingTodayLog!.status
-                      ? Colors.green.shade600.withValues(alpha: 0.12)
-                      : Colors.red.shade600.withValues(alpha: 0.12),
+                      ? Colors.green.shade600.withOpacity(0.12)
+                      : Colors.red.shade600.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: _existingTodayLog!.status ? Colors.green.shade400 : Colors.red.shade400,
