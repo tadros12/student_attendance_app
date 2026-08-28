@@ -25,9 +25,10 @@ class AttendanceService {
   })  : _firestore = isFirebaseReady ? (firestore ?? FirebaseFirestore.instance) : null,
         _prefs = prefs,
         _isFirebaseReady = isFirebaseReady {
-    if (_isFirebaseReady && _firestore != null) {
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
       try {
-        _firestore.settings = const Settings(
+        fs.settings = const Settings(
           persistenceEnabled: true,
           cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
         );
@@ -74,9 +75,10 @@ class AttendanceService {
 
   /// Real-time stream of all students (Firestore or resilient Local Cache)
   Stream<List<Student>> getStudentsStream() {
-    if (_isFirebaseReady && _firestore != null) {
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
       try {
-        return _firestore
+        return fs
             .collection(AppConstants.studentsCollection)
             .snapshots(includeMetadataChanges: true)
             .map((snapshot) {
@@ -104,9 +106,10 @@ class AttendanceService {
 
   /// Fetch a single student by ID
   Future<Student?> getStudentById(String studentId) async {
-    if (_isFirebaseReady && _firestore != null) {
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
       try {
-        final doc = await _firestore
+        final doc = await fs
             .collection(AppConstants.studentsCollection)
             .doc(studentId)
             .get(const GetOptions(source: Source.serverAndCache));
@@ -115,7 +118,7 @@ class AttendanceService {
         }
       } catch (_) {
         try {
-          final cacheDoc = await _firestore
+          final cacheDoc = await fs
               .collection(AppConstants.studentsCollection)
               .doc(studentId)
               .get(const GetOptions(source: Source.cache));
@@ -142,11 +145,12 @@ class AttendanceService {
     String? notes,
     required String markedBy,
   }) async {
+    final fs = _firestore;
     // 1. Try Firestore if active
-    if (_isFirebaseReady && _firestore != null) {
+    if (_isFirebaseReady && fs != null) {
       try {
-        final batch = _firestore.batch();
-        final logDocRef = _firestore.collection(AppConstants.attendanceLogsCollection).doc();
+        final batch = fs.batch();
+        final logDocRef = fs.collection(AppConstants.attendanceLogsCollection).doc();
         final log = AttendanceLog(
           logId: logDocRef.id,
           studentId: studentId,
@@ -158,7 +162,7 @@ class AttendanceService {
         batch.set(logDocRef, log.toMap());
 
         if (!status) {
-          final studentDocRef = _firestore.collection(AppConstants.studentsCollection).doc(studentId);
+          final studentDocRef = fs.collection(AppConstants.studentsCollection).doc(studentId);
           batch.update(studentDocRef, {'total_absences': FieldValue.increment(1)});
         }
         await batch.commit();
@@ -195,9 +199,9 @@ class AttendanceService {
 
   /// Batch upload parsed students from Excel
   Future<int> batchUploadStudents(List<Student> newStudents) async {
-    if (_isFirebaseReady && _firestore != null) {
+    final fs = _firestore;
+    if (_isFirebaseReady && fs != null) {
       try {
-        int totalUploaded = 0;
         const int chunkSize = 450;
 
         for (int i = 0; i < newStudents.length; i += chunkSize) {
@@ -206,14 +210,13 @@ class AttendanceService {
             (i + chunkSize > newStudents.length) ? newStudents.length : i + chunkSize,
           );
 
-          final batch = _firestore.batch();
+          final batch = fs.batch();
           for (final student in chunk) {
-            final docRef = _firestore.collection(AppConstants.studentsCollection).doc(student.id);
+            final docRef = fs.collection(AppConstants.studentsCollection).doc(student.id);
             batch.set(docRef, student.toMap(), SetOptions(merge: true));
           }
 
           await batch.commit();
-          totalUploaded += chunk.length;
         }
       } catch (e) {
         debugPrint('Firestore batch upload error: $e');

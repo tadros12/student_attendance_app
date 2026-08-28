@@ -88,7 +88,7 @@ class _ScannerViewState extends ConsumerState<ScannerView> {
               width: 260,
               height: 260,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white.withOpacity(0.8), width: 2.5),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2.5),
                 borderRadius: BorderRadius.circular(24),
               ),
             ),

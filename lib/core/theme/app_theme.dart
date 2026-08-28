@@ -12,7 +12,7 @@ class AppTheme {
         surface: const Color(0xFFF8F9FA),
       ),
       scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -44,12 +44,12 @@ class AppTheme {
         surface: const Color(0xFF1E1F22),
       ),
       scaffoldBackgroundColor: const Color(0xFF121316),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: const Color(0xFF1E1F22),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.white.withOpacity(0.08), width: 1),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

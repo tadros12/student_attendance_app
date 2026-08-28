@@ -91,7 +91,7 @@ class StudentCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: absenceBadgeColor.withOpacity(0.12),
+                  color: absenceBadgeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
